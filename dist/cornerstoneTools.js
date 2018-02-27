@@ -1,4 +1,4 @@
-/*! cornerstone-tools - 2.0.0 - 2017-12-13 | (c) 2017 Chris Hafey | https://github.com/cornerstonejs/cornerstoneTools */
+/*! cornerstone-tools - 2.0.0 - 2018-02-20 | (c) 2017 Chris Hafey | https://github.com/cornerstonejs/cornerstoneTools */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -2959,6 +2959,7 @@ Object.defineProperty(exports, "__esModule", {
 
 exports.default = function (element, images) {
   var loop = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+  var allowSkipping = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
 
   var toolData = (0, _toolState.getToolState)(element, 'stack');
 
@@ -2967,6 +2968,12 @@ exports.default = function (element, images) {
   }
 
   var stackData = toolData.data[0];
+
+  if (!stackData.pending) {
+    stackData.pending = [];
+  } else {
+    stackData.pending = [];
+  }
 
   var newImageIdIndex = stackData.currentImageIdIndex + images;
 
@@ -2979,7 +2986,16 @@ exports.default = function (element, images) {
     newImageIdIndex = Math.max(0, newImageIdIndex);
   }
 
-  (0, _scrollToIndex2.default)(element, newImageIdIndex);
+  if (allowSkipping) {
+    (0, _scrollToIndex2.default)(element, newImageIdIndex);
+  } else {
+    var pendingEvent = {
+      index: newImageIdIndex
+    };
+
+    stackData.pending.push(pendingEvent);
+    scrollWithoutSkipping(stackData, pendingEvent, element);
+  }
 };
 
 var _scrollToIndex = __webpack_require__(44);
@@ -2989,6 +3005,36 @@ var _scrollToIndex2 = _interopRequireDefault(_scrollToIndex);
 var _toolState = __webpack_require__(2);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function scrollWithoutSkipping(stackData, pendingEvent, element) {
+  if (stackData.pending[0] === pendingEvent) {
+    if (stackData.currentImageIdIndex === pendingEvent.index) {
+      stackData.pending.splice(stackData.pending.indexOf(pendingEvent), 1);
+
+      if (stackData.pending.length > 0) {
+        scrollWithoutSkipping(stackData, stackData.pending[0], element);
+      }
+
+      return;
+    }
+
+    element.addEventListener('cornerstonenewimage', function (event) {
+      var listener = this;
+      var index = stackData.imageIds.indexOf(event.detail.image.imageId);
+
+      if (index === pendingEvent.index) {
+        stackData.pending.splice(stackData.pending.indexOf(pendingEvent), 1);
+        element.removeEventListener('cornerstonenewimage', listener);
+
+        if (stackData.pending.length > 0) {
+          scrollWithoutSkipping(stackData, stackData.pending[0], element);
+        }
+      }
+    });
+
+    (0, _scrollToIndex2.default)(element, pendingEvent.index);
+  }
+}
 
 /***/ }),
 /* 31 */
@@ -3702,11 +3748,13 @@ exports.default = function (element, newImageIdIndex) {
       return;
     }
 
+    var enabledElement = undefined;
+
     // Check if the element is still enabled in Cornerstone,
     // If an error is thrown, stop here.
     try {
       // TODO: Add 'isElementEnabled' to Cornerstone?
-      cornerstone.getEnabledElement(element);
+      enabledElement = cornerstone.getEnabledElement(element);
     } catch (error) {
       return;
     }
@@ -3715,7 +3763,9 @@ exports.default = function (element, newImageIdIndex) {
       stackRenderer.currentImageIdIndex = newImageIdIndex;
       stackRenderer.render(element, toolData.data);
     } else {
-      cornerstone.displayImage(element, image);
+      var viewportProvider = (0, _toolState.getToolState)(element, 'viewportProvider');
+      var viewport = viewportProvider && viewportProvider.data && viewportProvider.data.length > 0 ? viewportProvider.data[0].getViewport(enabledElement, image) : undefined;
+      cornerstone.displayImage(element, image, viewport);
     }
 
     if (endLoadingHandler) {
@@ -8348,12 +8398,17 @@ function mouseWheelCallback(e) {
   var config = stackScroll.getConfiguration();
 
   var loop = false;
+  var allowSkipping = true;
 
   if (config && config.loop) {
     loop = config.loop;
   }
 
-  (0, _scroll2.default)(eventData.element, images, loop);
+  if (config && config.allowSkipping !== undefined) {
+    allowSkipping = config.allowSkipping;
+  }
+
+  (0, _scroll2.default)(eventData.element, images, loop, allowSkipping);
 }
 
 function dragCallback(e) {
@@ -8370,6 +8425,12 @@ function dragCallback(e) {
 
   var config = stackScroll.getConfiguration();
 
+  var allowSkipping = true;
+
+  if (config && config.allowSkipping !== undefined) {
+    allowSkipping = config.allowSkipping;
+  }
+
   // The Math.max here makes it easier to mouseDrag-scroll small or really large image stacks
   var pixelsPerImage = Math.max(2, element.offsetHeight / Math.max(stackData.imageIds.length, 8));
 
@@ -8385,7 +8446,7 @@ function dragCallback(e) {
   if (Math.abs(deltaY) >= pixelsPerImage) {
     var imageIdIndexOffset = Math.round(deltaY / pixelsPerImage);
 
-    (0, _scroll2.default)(element, imageIdIndexOffset);
+    (0, _scroll2.default)(element, imageIdIndexOffset, false, allowSkipping);
 
     options.deltaY = deltaY % pixelsPerImage;
   } else {
@@ -9579,6 +9640,7 @@ function mouseDown(e) {
     };
 
     var eventData = {
+      event: e,
       which: whichMouseButton,
       viewport: cornerstone.getViewport(element),
       image: cornerstone.getEnabledElement(element).image,
@@ -9702,6 +9764,7 @@ function mouseMove(e) {
   };
 
   var eventData = {
+    event: e,
     viewport: cornerstone.getViewport(element),
     image: cornerstone.getEnabledElement(element).image,
     element: element,

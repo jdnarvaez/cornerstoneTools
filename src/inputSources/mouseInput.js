@@ -146,6 +146,7 @@ function mouseDown (e) {
     };
 
     const eventData = {
+      event : e,
       which: whichMouseButton,
       viewport: cornerstone.getViewport(element),
       image: cornerstone.getEnabledElement(element).image,
@@ -269,6 +270,7 @@ function mouseMove (e) {
   };
 
   const eventData = {
+    event : e,
     viewport: cornerstone.getViewport(element),
     image: cornerstone.getEnabledElement(element).image,
     element,

@@ -42,6 +42,8 @@ export default function (element, images, loop = false, allowSkipping = true) {
 
   if (!stackData.pending) {
     stackData.pending = [];
+  } else {
+    stackData.pending = [];
   }
 
   let newImageIdIndex = stackData.currentImageIdIndex + images;
