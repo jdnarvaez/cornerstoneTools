@@ -9,6 +9,7 @@ import { getToolState } from '../stateManagement/toolState.js';
 import { setToolOptions, getToolOptions } from '../toolOptions.js';
 
 const toolType = 'stackScroll';
+const toolTypeTouchDrag = 'stackScrollTouchDrag';
 
 function mouseUpCallback (e) {
   const eventData = e.detail;
@@ -47,12 +48,9 @@ function mouseWheelCallback (e) {
   let loop = false;
   let allowSkipping = true;
 
-  if (config && config.loop) {
-    loop = config.loop;
-  }
-
-  if (config && config.allowSkipping !== undefined) {
-    allowSkipping = config.allowSkipping;
+  if (config) {
+    loop = config.loop === undefined ? false : config.loop;
+    allowSkipping = config.allowSkipping === undefined ? true : config.allowSkipping;
   }
 
   scroll(eventData.element, images, loop, allowSkipping);
@@ -115,7 +113,7 @@ const options = {
     deltaY: 0
   }
 };
-const stackScrollTouchDrag = touchDragTool(dragCallback, toolType, options);
+const stackScrollTouchDrag = touchDragTool(dragCallback, toolTypeTouchDrag, options);
 
 function multiTouchDragCallback (e) {
   const eventData = e.detail;

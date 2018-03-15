@@ -1,7 +1,6 @@
 import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import copyPoints from '../util/copyPoints.js';
-import pauseEvent from '../util/pauseEvent.js';
 import triggerEvent from '../util/triggerEvent.js';
 
 let isClickEvent = true;
@@ -33,6 +32,12 @@ function preventClickHandler () {
 function mouseDoubleClick (e) {
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
+  const enabledElement = cornerstone.getEnabledElement(element);
+
+  if (!enabledElement.image) {
+    return;
+  }
+
   const eventType = EVENTS.MOUSE_DOUBLE_CLICK;
 
   const startPoints = {
@@ -60,7 +65,7 @@ function mouseDoubleClick (e) {
     event: e,
     which: e.which,
     viewport: cornerstone.getViewport(element),
-    image: cornerstone.getEnabledElement(element).image,
+    image: enabledElement.image,
     element,
     startPoints,
     lastPoints,
@@ -76,10 +81,16 @@ function mouseDoubleClick (e) {
 }
 
 function mouseDown (e) {
-  preventClickTimeout = setTimeout(preventClickHandler, clickDelay);
-
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
+  const enabledElement = cornerstone.getEnabledElement(element);
+
+  if (!enabledElement.image) {
+    return;
+  }
+
+  preventClickTimeout = setTimeout(preventClickHandler, clickDelay);
+
   const eventType = EVENTS.MOUSE_DOWN;
 
   // Prevent CornerstoneToolsMouseMove while mouse is down
@@ -101,7 +112,7 @@ function mouseDown (e) {
     event: e,
     which: getEventWhich(e),
     viewport: cornerstone.getViewport(element),
-    image: cornerstone.getEnabledElement(element).image,
+    image: enabledElement.image,
     element,
     startPoints,
     lastPoints,
@@ -149,7 +160,7 @@ function mouseDown (e) {
       event : e,
       which: whichMouseButton,
       viewport: cornerstone.getViewport(element),
-      image: cornerstone.getEnabledElement(element).image,
+      image: enabledElement.image,
       element,
       startPoints,
       lastPoints,
@@ -165,9 +176,6 @@ function mouseDown (e) {
 
     // Update the last points
     lastPoints = copyPoints(currentPoints);
-
-    // Prevent left click selection of DOM elements
-    return pauseEvent(e);
   }
 
   // Hook mouseup so we can unbind our event listeners
@@ -206,7 +214,7 @@ function mouseDown (e) {
       event: e,
       which: whichMouseButton,
       viewport: cornerstone.getViewport(element),
-      image: cornerstone.getEnabledElement(element).image,
+      image: enabledElement.image,
       element,
       startPoints,
       lastPoints,
@@ -227,13 +235,17 @@ function mouseDown (e) {
 
   document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseup', onMouseUp);
-
-  return pauseEvent(e);
 }
 
 function mouseMove (e) {
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
+  const enabledElement = cornerstone.getEnabledElement(element);
+
+  if (!enabledElement.image) {
+    return;
+  }
+
   const eventType = EVENTS.MOUSE_MOVE;
 
   const startPoints = {
@@ -272,7 +284,7 @@ function mouseMove (e) {
   const eventData = {
     event : e,
     viewport: cornerstone.getViewport(element),
-    image: cornerstone.getEnabledElement(element).image,
+    image: enabledElement.image,
     element,
     startPoints,
     lastPoints,
