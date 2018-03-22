@@ -41,14 +41,14 @@ function mouseDownCallback (e) {
 
 function mouseWheelCallback (e) {
   const eventData = e.detail;
-  const images = -eventData.direction;
-
   const config = stackScroll.getConfiguration();
 
+  let images = -eventData.direction;
   let loop = false;
   let allowSkipping = true;
 
   if (config) {
+    images = config.images === undefined ? (-eventData.direction) : -config.images;
     loop = config.loop === undefined ? false : config.loop;
     allowSkipping = config.allowSkipping === undefined ? true : config.allowSkipping;
   }
